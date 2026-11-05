@@ -55,7 +55,8 @@
     var h = '<div class="zug" role="img" aria-label="Zug mit zwölf Wagen, ein Wagen je Verdächtigem"><span class="wagen lok">▣</span>';
     OE.personen.forEach(function (p) {
       var kl = "wagen";
-      if (geloest(p.tag)) kl += (p.id === "morel") ? " taeter" : " aus";
+      if (p.tag === 12) { var t = taeter(); if (t) kl += (p.id === t) ? " taeter" : " aus"; }
+      else if (geloest(p.tag)) kl += " aus";
       h += '<span class="' + kl + '">' + esc(p.kuerzel) + "</span>";
     });
     return h + "</div>";
@@ -280,6 +281,19 @@
 
   var FALSCH = ["Non, non, Madame. Die kleinen grauen Zellen – noch einmal.", "Hm. Das überzeugt Poirot nicht.", "Beinahe, vielleicht. Aber nicht ganz.", "Ordnung und Methode, Madame. Versuchen Sie es erneut."];
 
+  function merkeNachLoesung(tag, inhalt) {
+    schreib("nachloesung-" + tag, JSON.stringify(inhalt.verhoer || {}));
+    if (inhalt.taeter) schreib("taeter", inhalt.taeter);
+  }
+  // Ältere Spielstände: gelöste Tage ohne gemerkte Nachlösung still nachholen
+  function nachLoesungNachholen() {
+    if (!window.crypto || !crypto.subtle) return;
+    OE.tage.forEach(function (t) {
+      var alt = lies("loesung-" + t.tag);
+      if (alt && lies("nachloesung-" + t.tag) === null && t.spur.pruef)
+        pruefe(t.tag, alt).then(function (i) { if (i) merkeNachLoesung(t.tag, i); }).catch(function () {});
+    });
+  }
   function zeigeLoesung(tag, inhalt, fokus) {
     var box = document.getElementById("geloest");
     box.innerHTML = '<h2 tabindex="-1">' + esc(inhalt.titel) + "</h2>" + filmeHtml(inhalt.filme) + (inhalt.extra ? '<p class="extra">' + esc(inhalt.extra) + "</p>" : "");
@@ -288,6 +302,7 @@
     if (fokus) box.querySelector("h2").focus();
     schreib("geloest-" + tag, "1");
     if (inhalt.akte) schreib("akte-" + tag, inhalt.akte);
+    merkeNachLoesung(tag, inhalt);
     var z = document.querySelector(".zug"); if (z) z.outerHTML = zugHtml();
   }
 
@@ -342,8 +357,10 @@
     });
     seite("Die Passagiere", "Wagen Istanbul – Calais", h + "</ul>", "passagiere");
   }
+  // Wer der Täter ist, steht nur im verschlüsselten Inhalt von Tag 12 und wird beim Lösen gemerkt
+  function taeter() { return lies("taeter") || OE.taeterOffen || null; }
   function statusText(p) {
-    if (p.id === "morel" && geloest(12)) return ["überführt", "rot"];
+    if (p.tag === 12) { var t = taeter(); return t ? (p.id === t ? ["überführt", "rot"] : ["entlastet", ""]) : null; }
     if (geloest(p.tag)) return ["entlastet", ""];
     return null;
   }
@@ -353,16 +370,35 @@
   }
 
   // Verhör: Stichwörter in der Frage suchen, längste Treffer gewinnen
+  // Antworten nach der Lösung kommen aus dem entschlüsselten Tagesinhalt (siehe zeigeLoesung)
+  // Eine Person kann Texte aus mehreren Tagen haben (eine Antwort kann erst mit einem späteren Tag öffnen)
+  function nachLoesung(p) {
+    var d = { nach: {}, neu: [] }, gefunden = false;
+    for (var t = 1; t <= 12; t++) {
+      var nl = liesJson("nachloesung-" + t, null) || (OE.nachLoesungOffen && OE.nachLoesungOffen[t]) || null;
+      var e = nl && nl[p.id];
+      if (!e) continue;
+      gefunden = true;
+      Object.keys(e.nach || {}).forEach(function (k) { d.nach[k] = e.nach[k]; });
+      d.neu = d.neu.concat(e.neu || []);
+    }
+    return gefunden ? d : null;
+  }
+  function fragenVon(p) {
+    var d = nachLoesung(p);
+    return d && d.neu ? p.fragen.concat(d.neu) : p.fragen;
+  }
   function verfuegbar(p, f) {
-    var tg = aktuellerTag(), gl = geloest(p.tag);
+    var tg = aktuellerTag(), gl = geloest(p.tag), d = nachLoesung(p);
     if (f.nurNachLoesung && !gl) return null;
     if (f.abTag && tg < f.abTag) return f.vorher || null;
+    if (d && d.nach && d.nach[f.titel]) return d.nach[f.titel];
     if (gl && f.nachLoesung) return f.nachLoesung;
     return f.antwort;
   }
   function frageStellen(p, text) {
     var n = norm(text), best = null, bestPunkte = 0;
-    p.fragen.forEach(function (f) {
+    fragenVon(p).forEach(function (f) {
       var antwort = verfuegbar(p, f);
       if (!antwort) return;
       var pkt = 0;
@@ -384,7 +420,7 @@
     h += '<div id="verlauf" class="verlauf">' + log.map(function (e) {
       return '<p class="f">' + esc(e.q) + '</p><p class="a">' + esc(e.a) + "</p>";
     }).join("") + "</div>";
-    var vorschlaege = p.fragen.filter(function (f) { return f.zeigen && verfuegbar(p, f); });
+    var vorschlaege = fragenVon(p).filter(function (f) { return f.zeigen && verfuegbar(p, f); });
     h += '<div class="vorschlaege">' + vorschlaege.map(function (f) { return '<button type="button" class="chip">' + esc(f.titel) + "</button>"; }).join("") + "</div>";
     h += '<form id="verhoer" class="frage" autocomplete="off"><label for="vf">Ihre Frage an ' + esc(p.name) + '</label>' +
       '<p class="formhinweis">Fragen Sie, was Sie wissen wollen. Wer das richtige Stichwort kennt, erfährt mehr.</p>' +
@@ -456,4 +492,5 @@
   });
   window.addEventListener("hashchange", route);
   route();
+  nachLoesungNachholen();
 })();
