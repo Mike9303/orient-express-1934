@@ -2,6 +2,7 @@
 (function () {
   "use strict";
   var OE = window.OE;
+  if (OE.freigabeBis && new Date() >= new Date(OE.freigabeBis)) OE.allesOffen = false;  // befristete Freigabe abgelaufen
   var PRE = "oe2026-";
   var app = document.getElementById("app");
 
@@ -186,7 +187,7 @@
     } else {
       h += '<p class="einleitung">Madame la Détective, willkommen an Bord.</p>';
       h += '<div class="knoepfe">';
-      h += '<a class="knopf" href="#/heute">' + sym("heute") + (nachEnde() ? "Der letzte Tag" : "Poirots Nachricht von heute") + (nachEnde() ? "" : ' <span class="nr">Tag ' + n + "</span>") + "</a>";
+      h += '<a class="knopf" href="#/heute">' + sym("heute") + (nachEnde() ? "Der letzte Tag" : "Poirots Nachricht von heute") + (nachEnde() || n === 0 ? "" : ' <span class="nr">Tag ' + n + "</span>") + "</a>";
       h += '<a class="knopf leise' + (passagiereOffen() ? "" : " aus") + '" href="#/passagiere">' + sym("passagiere") + "Die Passagiere</a>";
       h += '<a class="knopf leise" href="#/akte">' + sym("akte") + "Fallakte und Fahrplan</a>";
       h += '<a class="knopf leise" href="#/geschichte">' + sym("geschichte") + "Die Geschichte</a>";
@@ -216,7 +217,8 @@
 
   function heute() {
     var n = aktuellerTag();
-    if (n === 0) return gesperrt(1);
+    if (n === 0 && !OE.allesOffen) return gesperrt(1);
+    if (n === 0) n = 1;
     location.replace("#/tag/" + n);
   }
 
