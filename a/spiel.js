@@ -165,7 +165,12 @@
       return JSON.parse(new TextDecoder().decode(out));
     });
   }
+  // Tippfehler bei Doppelbuchstaben verzeihen: KAFFEDOSE gilt wie KAFFEEDOSE (die Seite kennt auch die verkürzte Form)
+  function locker(v) { return v.replace(/([A-Z])\1+/g, "$1"); }  // nur Buchstaben, Uhrzeiten bleiben genau
   function pruefe(tag, v) {
+    return pruefeGenau(tag, v).then(function (i) { return i || locker(v) === v ? i : pruefeGenau(tag, locker(v)); });
+  }
+  function pruefeGenau(tag, v) {
     var spur = OE.tage[tag - 1].spur;
     return sha(bytes("oe-pruef:" + tag + ":" + v)).then(function (h) {
       var hh = hex(h), t = null;
