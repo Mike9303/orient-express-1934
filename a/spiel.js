@@ -170,6 +170,42 @@
   function pruefe(tag, v) {
     return pruefeGenau(tag, v).then(function (i) { return i || locker(v) === v ? i : pruefeGenau(tag, locker(v)); });
   }
+  // Regie-Seite (#/regie): alle Filme, verschlüsselt mit dem Regie-Wort, das nur Mike kennt
+  function oeffneRegie(v) {
+    var r = OE.regie;
+    if (!r) return Promise.resolve(null);
+    return sha(bytes("oe-pruef:regie:" + v)).then(function (h) {
+      var hh = hex(h), t = null;
+      r.pruef.forEach(function (p) { if (p.h === hh) t = p; });
+      if (!t) return null;
+      return sha(bytes("oe-wrap:regie:" + v)).then(function (w) {
+        var g = vonHex(t.w), k = new Uint8Array(32);
+        for (var i = 0; i < 32; i++) k[i] = g[i] ^ w[i];
+        return entschluessle(k, r.geheim);
+      });
+    });
+  }
+  function regie() {
+    var h = '<form id="regie-form" class="frage" autocomplete="off"><label for="rw">Regie-Wort</label>' +
+      '<input id="rw" type="password" autocapitalize="characters" spellcheck="false"><button type="submit">Öffnen</button>' +
+      '<p id="meldung" class="antwort" aria-live="polite"></p></form><div id="regie-filme"></div>';
+    seite("Regie", "Alle Filme der Reise", h, "start");
+    var form = document.getElementById("regie-form"), meldung = document.getElementById("meldung");
+    function zeige(liste) {
+      form.hidden = true;
+      document.getElementById("regie-filme").innerHTML = liste.map(function (x) { return "<h2>" + esc(x.titel) + "</h2>" + filmeHtml(x.filme); }).join("");
+    }
+    function versuche(v, still) {
+      if (!window.crypto || !crypto.subtle) { meldung.textContent = "Dieser Browser kann die Filme nicht öffnen."; return; }
+      oeffneRegie(v).then(function (liste) {
+        if (liste) { schreib("regie", v); zeige(liste); } else if (!still) meldung.textContent = "Das ist nicht das Regie-Wort.";
+      }).catch(function () { if (!still) meldung.textContent = "Eine Störung im Telegrafen. Bitte noch einmal."; });
+    }
+    form.addEventListener("submit", function (ev) { ev.preventDefault(); versuche(norm(document.getElementById("rw").value)); });
+    var gemerkt = lies("regie");
+    if (gemerkt) versuche(gemerkt, true);
+  }
+
   function pruefeGenau(tag, v) {
     var spur = OE.tage[tag - 1].spur;
     return sha(bytes("oe-pruef:" + tag + ":" + v)).then(function (h) {
@@ -204,6 +240,7 @@
           h += '<li><a href="#/tag/' + t.tag + '">Tag ' + t.tag + " · " + esc(t.titel) + '</a> · <a href="#/spur/' + t.tag + '">Spur</a>' + (geloest(t.tag) ? " · gelöst" : "") + "</li>";
         });
         h += '</ol><p class="leise-text">Extras: ' + Object.keys(OE.extras).map(function (k) { return '<a href="#' + OE.extrasCode[k] + '">' + esc(OE.extras[k].titel) + "</a>"; }).join(" · ") + "</p>";
+        h += '<p class="leise-text"><a href="#/regie">Alle Filme (Regie-Wort nötig)</a></p>';
       }
     }
     seite("Mord im Orientexpress", "Ein Fall für Hercule Poirot – und für Sie", h, "start");
@@ -489,6 +526,7 @@
       case "passagiere": return passagiere();
       case "p": return personAnsicht(teile[1]);
       case "akte": return akte();
+      case "regie": return regie();
       default: return start();
     }
   }
