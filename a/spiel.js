@@ -554,7 +554,7 @@
   function buch() {
     var h = '<p class="einleitung">Notieren Sie hier, was Ihnen auffällt. Am 6. Dezember brauchen Sie jede Notiz.</p>';
     h += notizHtml(0, false);
-    var tage = OE.tage.filter(function (t) { return offen(t.tag); }).reverse();
+    var tage = OE.tage.filter(function (t) { return offen(t.tag); });
     if (!tage.length) h += '<div class="sperre"><p>Die Seiten für die Reise sind noch leer, Madame.</p></div>';
     tage.forEach(function (t) { h += notizHtml(t.tag, false); });
     h += '<div class="notiz-sicher"><p class="leise-text">Ihre Notizen bleiben nur auf diesem Telefon. Zur Sicherheit können Sie eine Abschrift kopieren und sich selbst schicken.</p>' +
