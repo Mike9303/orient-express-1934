@@ -193,7 +193,22 @@
     var form = document.getElementById("regie-form"), meldung = document.getElementById("meldung");
     function zeige(liste) {
       form.hidden = true;
-      document.getElementById("regie-filme").innerHTML = liste.map(function (x) { return "<h2>" + esc(x.titel) + "</h2>" + filmeHtml(x.filme); }).join("");
+      document.getElementById("regie-filme").innerHTML =
+        '<div class="frage" id="neu-block"><p class="leise-text">Spielstand nur auf diesem Gerät: gelöste Tage, gefundene Spuren und Notizen der Fallakte. Rätsel und Filme bleiben unverändert.</p>' +
+        '<button type="button" id="neu-auf">Wieder bei Tag 1 beginnen</button>' +
+        '<div id="neu-frage" hidden><p>Wirklich? Alles, was dieses Gerät sich gemerkt hat, wird vergessen.</p>' +
+        '<button type="button" id="neu-ja">Ja, zurücksetzen</button> <button type="button" id="neu-nein">Abbrechen</button></div></div>' +
+        liste.map(function (x) { return "<h2>" + esc(x.titel) + "</h2>" + filmeHtml(x.filme); }).join("");
+      var frage = document.getElementById("neu-frage"), auf = document.getElementById("neu-auf");
+      auf.addEventListener("click", function () { frage.hidden = false; auf.hidden = true; });
+      document.getElementById("neu-nein").addEventListener("click", function () { frage.hidden = true; auf.hidden = false; });
+      document.getElementById("neu-ja").addEventListener("click", function () {
+        try {
+          Object.keys(localStorage).filter(function (k) { return k.indexOf(PRE) === 0 && k !== PRE + "regie" && k !== PRE + "testtag"; })
+            .forEach(function (k) { localStorage.removeItem(k); });
+        } catch (e) {}
+        location.hash = "#/"; location.reload();
+      });
     }
     function versuche(v, still) {
       if (!window.crypto || !crypto.subtle) { meldung.textContent = "Dieser Browser kann die Filme nicht öffnen."; return; }
