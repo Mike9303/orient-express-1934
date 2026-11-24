@@ -318,9 +318,9 @@
     if (e.typ === "text") {
       h += '<input id="f1" type="text" autocapitalize="characters" spellcheck="false">';
     } else if (e.typ === "tisch") {
-      h += '<div class="auswahl-zeile"><select id="f1" aria-label="Tisch"><option value="">Tisch …</option><option value="1">Tisch 1</option><option value="2">Tisch 2</option><option value="3">Tisch 3</option><option value="4">Tisch 4 (Fenster)</option></select></div>';
-      h += '<div class="auswahl-zeile"><select id="f2" aria-label="Getränk"><option value="">Getränk …</option><option>Cognac</option><option>Tee</option><option>Kaffee</option><option>Sherry</option></select></div>';
-      h += '<div class="auswahl-zeile"><select id="f3" aria-label="Uhrzeit"><option value="">Uhrzeit …</option><option>21:00</option><option>21:30</option><option>22:00</option><option>23:00</option></select></div>';
+      h += '<div class="auswahl-zeile"><select id="f1" aria-label="Tisch"><option value="">Tisch …</option><option value="1">Tisch 1</option><option value="2">Tisch 2</option><option value="3">Tisch 3 (Fenster)</option></select></div>';
+      h += '<div class="auswahl-zeile"><select id="f2" aria-label="Getränk"><option value="">Getränk …</option><option>Cognac</option><option>Tee</option><option>Sherry</option></select></div>';
+      h += '<div class="auswahl-zeile"><select id="f3" aria-label="Uhrzeit"><option value="">Uhrzeit …</option><option>21:00</option><option>22:00</option><option>23:00</option></select></div>';
     } else if (e.typ === "anklage") {
       h += '<select id="f1" aria-label="Der Mörder"><option value="">Der Mörder ist …</option><option value="ROCHARD">Mademoiselle Rochard</option><option value="MOREL">Monsieur Morel</option></select>';
       h += '<p class="formhinweis">Welche Aussagen sind gelogen? Kreuzen Sie an.</p><div class="kreuze">';
