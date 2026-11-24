@@ -382,3 +382,5 @@ main > div > .hinweis { box-shadow: var(--schatten-papier); }
 .abschrift-feld { display: block; width: 100%; min-height: 10em; margin-top: 10px; font: 15px/1.4 var(--maschine); color: var(--tinte); background: var(--papier); border: 1px solid var(--papier-linie); padding: 10px; }
 .abschrift-feld[hidden] { display: none; }
 .leiste a { min-width: 54px; }
+.notiz-loesung { margin: 10px 0 0; padding: 8px 10px; font-family: var(--maschine); font-size: 16px; color: var(--tinte); background: var(--papier-2); border-radius: 2px; }
+.notiz-loesung span { display: block; font-family: var(--serif); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--rot); }

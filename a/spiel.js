@@ -347,13 +347,14 @@
   function merkeNachLoesung(tag, inhalt) {
     schreib("nachloesung-" + tag, JSON.stringify(inhalt.verhoer || {}));
     if (inhalt.taeter) schreib("taeter", inhalt.taeter);
+    if (inhalt.loesung) schreib("buchloesung-" + tag, inhalt.loesung);
   }
   // Ältere Spielstände: gelöste Tage ohne gemerkte Nachlösung still nachholen
   function nachLoesungNachholen() {
     if (!window.crypto || !crypto.subtle) return;
     OE.tage.forEach(function (t) {
       var alt = lies("loesung-" + t.tag);
-      if (alt && lies("nachloesung-" + t.tag) === null && t.spur.pruef)
+      if (alt && (lies("nachloesung-" + t.tag) === null || lies("buchloesung-" + t.tag) === null) && t.spur.pruef)
         pruefe(t.tag, alt).then(function (i) { if (i) merkeNachLoesung(t.tag, i); }).catch(function () {});
     });
   }
@@ -405,7 +406,7 @@
 
   function extraAnsicht(x) {
     if (!offen(x.tag)) return gesperrt(x.tag);
-    if (x.markiertGeloest) { schreib("geloest-" + x.tag, "1"); if (x.akte) schreib("akte-" + x.tag, x.akte); }
+    if (x.markiertGeloest) { schreib("geloest-" + x.tag, "1"); if (x.akte) schreib("akte-" + x.tag, x.akte); if (x.loesung) schreib("buchloesung-" + x.tag, x.loesung); }
     seite(x.titel, null, filmeHtml(x.filme) + (x.extra ? '<p class="extra">' + esc(x.extra) + "</p>" : ""), "heute", fahrkarte(x.tag, x.titel, datumText(x.tag)));
   }
 
@@ -528,7 +529,10 @@
     var id = "notiz-" + tag, titel = tag === 0 ? "Allgemeine Notizen" : (klein ? "Ihr Ermittlungsbuch · Tag " + tag : "Tag " + tag + " · " + OE.tage[tag - 1].titel);
     var h = '<div class="notiz' + (klein ? " klein" : "") + '"><label for="' + id + '">' + esc(titel) + "</label>";
     if (!klein && tag > 0) h += '<span class="notiz-datum">' + esc(datumText(tag)) + "</span>";
-    if (tag > 0 && lies("geloest-" + tag) === "1" && lies("akte-" + tag)) h += '<p class="notiz-akte">' + esc(lies("akte-" + tag)) + "</p>";
+    if (tag > 0 && lies("geloest-" + tag) === "1") {
+      if (lies("buchloesung-" + tag)) h += '<p class="notiz-loesung"><span>Lösung</span>' + esc(lies("buchloesung-" + tag)) + "</p>";
+      if (lies("akte-" + tag)) h += '<p class="notiz-akte">' + esc(lies("akte-" + tag)) + "</p>";
+    }
     h += '<textarea id="' + id + '" data-tag="' + tag + '" rows="' + (klein ? 4 : 5) + '" placeholder="Was ist Ihnen aufgefallen, Madame?">' + esc(lies("buch-" + tag) || "") + "</textarea>";
     return h + '<p class="notiz-stand" aria-live="polite"></p></div>';
   }
@@ -546,8 +550,8 @@
     var z = ["Ermittlungsbuch · Mord im Orientexpress", ""];
     if (lies("buch-0")) z.push("Allgemeine Notizen", lies("buch-0"), "");
     OE.tage.forEach(function (t) {
-      var n = lies("buch-" + t.tag);
-      if (n) z.push("Tag " + t.tag + " · " + t.datum + " · " + t.titel, n, "");
+      var n = lies("buch-" + t.tag), l = lies("geloest-" + t.tag) === "1" ? lies("buchloesung-" + t.tag) : null;
+      if (n || l) { z.push("Tag " + t.tag + " · " + t.datum + " · " + t.titel); if (l) z.push("Lösung: " + l); if (n) z.push(n); z.push(""); }
     });
     return z.join("\n");
   }
