@@ -357,3 +357,28 @@ main > div > .hinweis { box-shadow: var(--schatten-papier); }
   .leiste { margin-left: 0; margin-right: 0; }
   h1 { font-size: 44px; }
 }
+
+/* ---------- Ermittlungsbuch ---------- */
+.notiz {
+  margin: 26px 0 0; padding: 18px 18px 12px; color-scheme: light;
+  background: var(--papier); color: var(--tinte); box-shadow: var(--schatten-papier); border-radius: 2px;
+  border-left: 3px solid var(--rot);
+}
+.notiz label { display: block; font-family: var(--anzeige); font-size: 20px; line-height: 1.25; }
+.notiz.klein label { font-family: var(--serif); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--tinte-leise); }
+.notiz-datum { display: block; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--messing-tief); margin-top: 2px; }
+.notiz-akte { margin: 8px 0 0; font-size: 15px; font-style: italic; color: var(--tinte-leise); }
+.notiz textarea {
+  display: block; width: 100%; margin-top: 10px; padding: 4px 6px; resize: vertical; min-height: 7.5em;
+  font-family: var(--serif); font-size: 18px; line-height: 30px; color: var(--tinte);
+  border: 0; border-radius: 0; box-shadow: none;
+  background: transparent repeating-linear-gradient(to bottom, transparent 0 29px, var(--papier-linie) 29px 30px);
+  background-attachment: local;
+}
+.notiz textarea:focus { outline: 2px solid var(--tinte); outline-offset: 2px; }
+.notiz textarea::placeholder { color: var(--tinte-leise); font-style: italic; }
+.notiz-stand { min-height: 1.2em; margin: 4px 0 0; font-size: 13px; font-style: italic; color: var(--tinte-leise); }
+.notiz-sicher { margin-top: 30px; }
+.abschrift-feld { display: block; width: 100%; min-height: 10em; margin-top: 10px; font: 15px/1.4 var(--maschine); color: var(--tinte); background: var(--papier); border: 1px solid var(--papier-linie); padding: 10px; }
+.abschrift-feld[hidden] { display: none; }
+.leiste a { min-width: 54px; }

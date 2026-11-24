@@ -70,6 +70,7 @@
     akte: '<path d="M3 6h6l2 2h10v11H3z"/><path d="M7 13h10M7 16h6"/>',
     geschichte: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 9h8M8 12h8M8 15h5"/>',
     regeln: '<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5L20 20"/>',
+    buch: '<path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M5 18a2 2 0 0 1 2-2h12"/><path d="M9 8h6M9 11h4"/>',
     menue: '<path d="M4 7h16M4 12h16M4 17h16"/>'
   };
   function sym(n) {
@@ -96,7 +97,7 @@
   }
 
   var MENUE = [["start", "#/", "Start"], ["heute", "#/heute", "Heute"], ["geschichte", "#/geschichte", "Die Geschichte"],
-    ["passagiere", "#/passagiere", "Die Passagiere"], ["akte", "#/akte", "Fallakte und Fahrplan"], ["regeln", "#/regeln", "So ermitteln Sie"]];
+    ["passagiere", "#/passagiere", "Die Passagiere"], ["akte", "#/akte", "Fallakte und Fahrplan"], ["buch", "#/buch", "Ermittlungsbuch"], ["regeln", "#/regeln", "So ermitteln Sie"]];
 
   function seite(titel, unter, inhalt, aktiv, karte) {
     document.title = titel ? titel + " · Orientexpress" : "Orientexpress";
@@ -104,7 +105,7 @@
       var aus = m[0] === "passagiere" && !passagiereOffen();
       return '<a href="' + m[1] + '" class="' + (m[0] === aktiv ? "aktiv" : "") + (aus ? " aus" : "") + '">' + sym(m[0]) + "<span>" + esc(m[2]) + "</span></a>";
     }).join("");
-    var leiste = [["start", "#/", "Start"], ["heute", "#/heute", "Heute"], ["passagiere", "#/passagiere", "Passagiere"], ["akte", "#/akte", "Fallakte"]]
+    var leiste = [["start", "#/", "Start"], ["heute", "#/heute", "Heute"], ["passagiere", "#/passagiere", "Passagiere"], ["akte", "#/akte", "Fallakte"], ["buch", "#/buch", "Notizen"]]
       .map(function (m) { return '<a href="' + m[1] + '"' + (m[0] === aktiv ? ' class="aktiv" aria-current="page"' : "") + ">" + sym(m[0]) + "<span>" + m[2] + "</span></a>"; }).join("");
     app.innerHTML =
       '<a class="skip" href="#inhalt-start">Zum Inhalt</a>' +
@@ -194,7 +195,7 @@
     function zeige(liste) {
       form.hidden = true;
       document.getElementById("regie-filme").innerHTML =
-        '<div class="frage" id="neu-block"><p class="leise-text">Spielstand nur auf diesem Gerät: gelöste Tage, gefundene Spuren und Notizen der Fallakte. Rätsel und Filme bleiben unverändert.</p>' +
+        '<div class="frage" id="neu-block"><p class="leise-text">Spielstand nur auf diesem Gerät: gelöste Tage, gefundene Spuren, Fallakte und Ermittlungsbuch. Rätsel und Filme bleiben unverändert.</p>' +
         '<button type="button" id="neu-auf">Wieder bei Tag 1 beginnen</button>' +
         '<div id="neu-frage" hidden><p>Wirklich? Alles, was dieses Gerät sich gemerkt hat, wird vergessen.</p>' +
         '<button type="button" id="neu-ja">Ja, zurücksetzen</button> <button type="button" id="neu-nein">Abbrechen</button></div></div>' +
@@ -246,6 +247,7 @@
       h += '<a class="knopf" href="#/heute">' + sym("heute") + (nachEnde() ? "Der letzte Tag" : "Poirots Nachricht von heute") + (nachEnde() || n === 0 ? "" : ' <span class="nr">Tag ' + n + "</span>") + "</a>";
       h += '<a class="knopf leise' + (passagiereOffen() ? "" : " aus") + '" href="#/passagiere">' + sym("passagiere") + "Die Passagiere</a>";
       h += '<a class="knopf leise" href="#/akte">' + sym("akte") + "Fallakte und Fahrplan</a>";
+      h += '<a class="knopf leise" href="#/buch">' + sym("buch") + "Ihr Ermittlungsbuch</a>";
       h += '<a class="knopf leise" href="#/geschichte">' + sym("geschichte") + "Die Geschichte</a>";
       h += '<a class="knopf leise" href="#/regeln">' + sym("regeln") + "So ermitteln Sie</a>";
       h += "</div>";
@@ -295,7 +297,9 @@
     }
     if (t.person) h += '<a class="knopf leise" href="#/p/' + t.person + '">' + esc(person(t.person).name) + " befragen</a>";
     h += "</div>";
+    h += notizHtml(tag, true);
     seite("Tag " + tag + " · " + t.titel, null, h, "heute", fahrkarte(tag, t.titel, datumText(tag)));
+    notizenBinden();
   }
 
   function beweisHtml(b) {
@@ -373,7 +377,9 @@
     if (s.eingabe) h += formHtml(tag, s.eingabe);
     else if (s.ohneEingabe) h += '<p class="hinweis">' + esc(s.ohneEingabe) + "</p>";
     h += '<section id="geloest" class="geloest" hidden></section>';
+    h += notizHtml(tag, true);
     seite("Tag " + tag + " · " + t.titel, null, h, "heute", fahrkarte(tag, t.titel, "Die Spur · " + datumText(tag)));
+    notizenBinden();
     if (!s.eingabe) return;
     var e = s.eingabe, meldung = document.getElementById("meldung"), h2 = document.getElementById("hinweis2");
     var fehl = parseInt(lies("fehl-" + tag) || "0", 10);
@@ -517,6 +523,54 @@
     seite("Ihre Fallakte", "Der Fahrplan Ihrer Ermittlung", h + "</ol>", "akte");
   }
 
+  // ---------- Ermittlungsbuch: Notizen bleiben nur auf diesem Telefon ----------
+  function notizHtml(tag, klein) {
+    var id = "notiz-" + tag, titel = tag === 0 ? "Allgemeine Notizen" : (klein ? "Ihr Ermittlungsbuch · Tag " + tag : "Tag " + tag + " · " + OE.tage[tag - 1].titel);
+    var h = '<div class="notiz' + (klein ? " klein" : "") + '"><label for="' + id + '">' + esc(titel) + "</label>";
+    if (!klein && tag > 0) h += '<span class="notiz-datum">' + esc(datumText(tag)) + "</span>";
+    if (tag > 0 && lies("geloest-" + tag) === "1" && lies("akte-" + tag)) h += '<p class="notiz-akte">' + esc(lies("akte-" + tag)) + "</p>";
+    h += '<textarea id="' + id + '" data-tag="' + tag + '" rows="' + (klein ? 4 : 5) + '" placeholder="Was ist Ihnen aufgefallen, Madame?">' + esc(lies("buch-" + tag) || "") + "</textarea>";
+    return h + '<p class="notiz-stand" aria-live="polite"></p></div>';
+  }
+  function notizenBinden() {
+    Array.prototype.forEach.call(document.querySelectorAll(".notiz textarea"), function (ta) {
+      var stand = ta.parentNode.querySelector(".notiz-stand"), uhr = null;
+      ta.addEventListener("input", function () {
+        schreib("buch-" + ta.getAttribute("data-tag"), ta.value);
+        clearTimeout(uhr);
+        uhr = setTimeout(function () { stand.textContent = lies("buch-" + ta.getAttribute("data-tag")) === ta.value ? "Notiert." : "Konnte nicht gespeichert werden."; }, 600);
+      });
+    });
+  }
+  function abschrift() {
+    var z = ["Ermittlungsbuch · Mord im Orientexpress", ""];
+    if (lies("buch-0")) z.push("Allgemeine Notizen", lies("buch-0"), "");
+    OE.tage.forEach(function (t) {
+      var n = lies("buch-" + t.tag);
+      if (n) z.push("Tag " + t.tag + " · " + t.datum + " · " + t.titel, n, "");
+    });
+    return z.join("\n");
+  }
+  function buch() {
+    var h = '<p class="einleitung">Notieren Sie hier, was Ihnen auffällt. Am 6. Dezember brauchen Sie jede Notiz.</p>';
+    h += notizHtml(0, false);
+    var tage = OE.tage.filter(function (t) { return offen(t.tag); }).reverse();
+    if (!tage.length) h += '<div class="sperre"><p>Die Seiten für die Reise sind noch leer, Madame.</p></div>';
+    tage.forEach(function (t) { h += notizHtml(t.tag, false); });
+    h += '<div class="notiz-sicher"><p class="leise-text">Ihre Notizen bleiben nur auf diesem Telefon. Zur Sicherheit können Sie eine Abschrift kopieren und sich selbst schicken.</p>' +
+      '<button type="button" class="leise" id="abschrift-knopf">Abschrift kopieren</button><p id="abschrift-meldung" class="leise-text" aria-live="polite"></p>' +
+      '<textarea id="abschrift-feld" class="abschrift-feld" readonly hidden></textarea></div>';
+    seite("Ihr Ermittlungsbuch", "Belgrad, November 1934", h, "buch");
+    notizenBinden();
+    document.getElementById("abschrift-knopf").addEventListener("click", function () {
+      var text = abschrift(), m = document.getElementById("abschrift-meldung"), feld = document.getElementById("abschrift-feld");
+      function zeigen() { feld.value = text; feld.hidden = false; feld.focus(); feld.select(); m.textContent = "Bitte markierten Text kopieren."; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { m.textContent = "Abschrift kopiert."; }, zeigen);
+      } else zeigen();
+    });
+  }
+
   // ---------- Router ----------
   function route() {
     var h = decodeURIComponent(location.hash.replace(/^#/, ""));
@@ -541,6 +595,7 @@
       case "passagiere": return passagiere();
       case "p": return personAnsicht(teile[1]);
       case "akte": return akte();
+      case "buch": return buch();
       case "regie": return regie();
       default: return start();
     }
